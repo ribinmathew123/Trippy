@@ -26,10 +26,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  cors({
-    credentials: true,
-    origin: ['http://localhost:5173',"*","https://api.ribin.site/"]
-  })
+  // cors({
+  //   credentials: true,
+  //   origin: ['http://localhost:5173',"*","https://api.ribin.site/"]
+  // })
+  cors()
 );
 
 app.use("/admin", adminRoute);
