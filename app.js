@@ -13,26 +13,24 @@ const PORT = process.env.PORT || 3000;
 connectDatabase();
 
 
-// app.use(cookieParser())
-// app.use(express.json({ limit: '50mb' }));
-// app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// app.use(express.urlencoded())
-// app.use(express.json());
 
-
-// app.use(logger('dev'));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  credentials: true,
+  origin: ['http://localhost:5173', 'https://trippy.ribin.site']
+}));
 
-app.use(
+// app.use(
   // cors({
   //   credentials: true,
   //   origin: ['http://localhost:5173',"*","https://api.ribin.site/"]
   // })
-  cors()
-);
+//   cors()
+// );
 
+app.options('*', cors());
 app.use("/admin", adminRoute);
 app.use('/vendor', vendorRoute)
 app.use('/', userRoute);
