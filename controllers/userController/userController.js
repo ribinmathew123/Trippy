@@ -135,7 +135,6 @@ const otpVerification = async (req, res) => {
 
 
 export const resendOtp=async (req, res) => {
-  console.log("resent otp hhhhhhhhhhhhhhhhhhhhhhhh");
   try {
     const { phoneNumber } = req.body;
     console.log("number",phoneNumber);
@@ -162,16 +161,15 @@ export const resendOtp=async (req, res) => {
 
 export const forgotPasswordOtp = async (req, res) => {
   try {
-    console.log(req.body);
+   
     const { otpCode, newPassword, phoneNumber } = req.body;
 
-    // Find the user based on the provided mobile number
     const user = await User.findOne({ phoneNumber });
-
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
     }
+
 
     const otpVerify = await verifyOtp(phoneNumber, otpCode);
 
@@ -184,8 +182,11 @@ export const forgotPasswordOtp = async (req, res) => {
       user.password = hashedPassword;
       await user.save();
 
+      console.log("Password updated successfully");
       res.status(200).json({ message: "Password updated successfully" });
     } else {
+      console.log("Invalid OTP");
+
       res.status(400).json({ message: "Invalid OTP" });
     }
   } catch (error) {
@@ -198,6 +199,8 @@ export const forgotPasswordOtp = async (req, res) => {
 const generateAuthToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "10d" });
 };
+
+
 
 
 
@@ -231,6 +234,10 @@ console.log("userinfo",userExists);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+
+
 
 const searchPackage = async (req, res) => {
   const { searchKey, price, startDate, page } = req.body;
