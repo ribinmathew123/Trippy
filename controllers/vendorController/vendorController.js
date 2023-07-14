@@ -4,12 +4,8 @@ import asyncHandler from "express-async-handler";
 import Place from "../../models/admin/placeModel.js";
 import User from "../../models/user/userModel.js";
 import Vendor from "../../models/vendor/VendorModel.js";
-
-
 import OrderModel from "../../models/payment/paymentModel.js";
 import mongoose from 'mongoose';
-
-
 import Category from "../../models/vendor/CategoryModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -17,6 +13,122 @@ import { sendOtp, verifyOtp } from "../../helpers/otpVerification.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// export const vendorLogin = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const vendor = await Vendor.findOne({ email: email });
+
+//     if (vendor) {
+//       if (vendor.isBlocked === true) {
+//         res.status(400).json({ message: "Your account has been blocked!" });
+//       } else {
+//         const isPasswordCorrect = await bcrypt.compare(
+//           password,
+//           vendor.password
+//         );
+//         if (isPasswordCorrect) {
+//           res.status(200).json({
+//             _id: vendor.id,
+//             name: vendor.name,
+//             email: vendor.email,
+//             phoneNumber: vendor.phoneNumber,
+//             token: generateAuthToken(vendor._id),
+//           });
+//         } else {
+//           res.status(400).json({ message: "Incorrect password" });
+//         }
+//       }
+//     } else {
+//       res.status(400).json({ message: "Incorrect email" });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
+
+
+
+
+
+
+
+
+// export const vendorSignup = async (req, res) => {
+//   console.log("vendor data comingkkkkkkkk");
+//   try {
+//     const { name, email, phoneNumber, password } = req.body;
+
+//     if (!name || !email || !phoneNumber || !password) {
+//       return res
+//         .status(400)
+//         .json({ error: "Please provide all required fields" });
+//     }
+
+//     const userExists = await Vendor.findOne({ email });
+//     if (userExists) {
+//       return res.status(400).json({ error: "User already exists" });
+//     }
+
+//     const otpSend = await sendOtp(phoneNumber);
+//     if (!otpSend) {
+//       return res.status(500).json({ error: "Failed to send OTP" });
+//     }
+
+//     return res.status(200).json(true);
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: "Internal Server Error" });
+//   }
+// };
+
+
+
+// export const otpVerification = async (req, res) => {
+//   try {
+//     const { name, email, password, phoneNumber, otpCode } = req.body;
+//     const otpVerify = await verifyOtp(phoneNumber, otpCode);
+//     if (otpVerify.status == "approved") {
+//       console.log("otp approvel ");
+
+//       const salt = await bcrypt.genSalt(10);
+//       const hashedPassword = await bcrypt.hash(password, salt);
+//       const vendor = await Vendor.create({
+//         name,
+//         email,
+//         phoneNumber,
+//         password: hashedPassword,
+//         isVerified:true
+
+//       });
+
+//       if (vendor) {
+//         res.status(201).json({
+//           _id: vendor.id,
+//           name: vendor.name,
+//           email: vendor.email,
+//           phoneNumber: vendor.phoneNumber,
+//           isVerified:vendor.isVerified,
+//           token: generateAuthToken(vendor._id),
+//         });
+//       }
+//     } else {
+//       res.status(400);
+//       throw new Error("Invalid OTP");
+//     }
+//   } catch (error) {
+//     res.status(408).send({ message: "Internal Server Error" });
+//   }
+// };
+
+// const generateAuthToken = (id) => {
+//   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "10d" });
+// };
+
+
+
+
 
 export const vendorLogin = async (req, res) => {
   try {
@@ -28,15 +140,13 @@ export const vendorLogin = async (req, res) => {
       if (vendor.isBlocked === true) {
         res.status(400).json({ message: "Your account has been blocked!" });
       } else {
-        const isPasswordCorrect = await bcrypt.compare(
-          password,
-          vendor.password
-        );
+        const isPasswordCorrect = await bcrypt.compare(password, vendor.password);
         if (isPasswordCorrect) {
           res.status(200).json({
             _id: vendor.id,
             name: vendor.name,
             email: vendor.email,
+            isVerified:vendor.isVerified,
             phoneNumber: vendor.phoneNumber,
             token: generateAuthToken(vendor._id),
           });
@@ -57,11 +167,10 @@ export const vendorLogin = async (req, res) => {
 
 
 
-
-
 export const vendorSignup = async (req, res) => {
   try {
     const { name, email, phoneNumber, password } = req.body;
+    console.log("data", name, email, phoneNumber, password);
 
     if (!name || !email || !phoneNumber || !password) {
       return res
@@ -69,9 +178,159 @@ export const vendorSignup = async (req, res) => {
         .json({ error: "Please provide all required fields" });
     }
 
-    const userExists = await Vendor.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ error: "User already exists" });
+    const userExistsByEmail = await Vendor.findOne({ email });
+    const userExistsByPhoneNumber = await Vendor.findOne({ phoneNumber });
+
+    if (userExistsByEmail) {
+      console.log("User with this email already exists");
+      return res.status(400).json({ message: "User with this email already exists" });
+    }
+
+    if (userExistsByPhoneNumber) {
+      console.log("phone number already used");
+      return res.status(400).json({ message: "User with this phone number already exists" });
+
+    }
+
+    const otpSend = await sendOtp(phoneNumber);
+    if (!otpSend) {
+      return res.status(500).json({ error: "Failed to send OTP" });
+    }
+
+    return res.status(200).json({message:"otp sent success"});
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+export const otpVerification = async (req, res) => {
+  try {
+    const { name, email, password, phoneNumber, otpCode } = req.body;
+    console.log("vendorrrrr ");
+    const otpVerify = await verifyOtp(phoneNumber, otpCode);
+    if (otpVerify.status == "approved") {
+      console.log("otp approvel ");
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const vendor = await Vendor.create({
+        name,
+        email,
+        phoneNumber,
+        password: hashedPassword,
+        isVerified:true
+      });
+      if (vendor) {
+        res.status(201).json({
+          _id: vendor.id,
+          name: vendor.name,
+          email: vendor.email,
+          phoneNumber: vendor.phoneNumber,
+          isVerified:vendor.isVerified,
+          token: generateAuthToken(vendor._id),
+        });
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid OTP" });
+
+      // throw new Error("Invalid OTP");
+    }
+  } catch (error) {
+    res.status(408).send({ message: "Internal Server Error" });
+  }
+};
+
+
+export const resendOtp=async (req, res) => {
+  console.log("resent otp hhhhhhhhhhhhhhhhhhhhhhhh");
+  try {
+    const { phoneNumber } = req.body;
+    console.log("number",phoneNumber);
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: "Please provide a phone number" });
+    }
+
+    const otpSend = await sendOtp(phoneNumber);
+    if (!otpSend) {
+      return res.status(500).json({ error: "Failed to send OTP" });
+    }
+
+    return res.status(200).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+export const forgotPasswordOtp = async (req, res) => {
+  try {
+    console.log(req.body);
+    const { otpCode, newPassword, phoneNumber } = req.body;
+
+    // Find the user based on the provided mobile number
+    const vendor = await Vendor.findOne({ phoneNumber });
+
+    if (!vendor) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const otpVerify = await verifyOtp(phoneNumber, otpCode);
+
+    if (otpVerify.status === "approved") {
+      console.log("OTP approved");
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      vendor.password = hashedPassword;
+      await vendor.save();
+
+      res.status(200).json({ message: "Password updated successfully" });
+    } else {
+      res.status(400).json({ message: "Invalid OTP" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+const generateAuthToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "10d" });
+};
+
+
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const {  phoneNumber} = req.body;
+    console.log("data",phoneNumber);
+
+    if (!phoneNumber) {
+      return res
+        .status(400)
+        .json({ error: "Please provide all required fields" });
+    }
+
+    const userExists = await Vendor.findOne({ phoneNumber });
+console.log("userinfo",userExists);
+
+    if (!userExists) {
+      console.log("no user found");
+      return res.status(400).json({ message: "No user found " });
     }
 
     const otpSend = await sendOtp(phoneNumber);
@@ -88,43 +347,7 @@ export const vendorSignup = async (req, res) => {
 
 
 
-export const otpVerification = async (req, res) => {
-  try {
-    const { name, email, password, phoneNumber, otpCode } = req.body;
-    const otpVerify = await verifyOtp(phoneNumber, otpCode);
-    if (otpVerify.status == "approved") {
-      console.log("otp approvel ");
 
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-      const vendor = await Vendor.create({
-        name,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-      });
-
-      if (vendor) {
-        res.status(201).json({
-          _id: vendor.id,
-          name: vendor.name,
-          email: vendor.email,
-          phoneNumber: vendor.phoneNumber,
-          token: generateAuthToken(vendor._id),
-        });
-      }
-    } else {
-      res.status(400);
-      throw new Error("Invalid OTP");
-    }
-  } catch (error) {
-    res.status(408).send({ message: "Internal Server Error" });
-  }
-};
-
-const generateAuthToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "10d" });
-};
 
 
 
@@ -208,22 +431,70 @@ export const addPackage = async (req, res, next) => {
 
 
 
-export const TousistPackage = async (req, res) => {
+// export const TousistPackage = async (req, res) => {
    
 
-  try {
-    const matchingPackages = await Package.find({isBlocked: false }).sort({
+//   try {
+//     const currentDate = new Date();
 
-      createdAt: -1,
-    });
-    console.log(matchingPackages);
+//     const matchingPackages = await Package.find({
+//       isBlocked: false,
+     
+//       endDate: { $gte: currentDate },
+//     })
+//       .sort({ createdAt: -1 })
+//       .populate("vendorId");
+//       const filteredPackages = matchingPackages.filter(packages => {
+//         return packages.vendorId.isBlocked === false; 
+//       });
+
+//     console.log("matching data:", matchingPackages);
+
+
+
+//     res.status(200).json(matchingPackages);
+//   } catch (error) {
+//     res.status(500).send({ message: "Internal Server Error" });
+//   }
+// };
+
+
+export const TousistPackage = async (req, res) => {
+  try {
+    const currentDate = new Date();
+
+    const matchingPackages = await Package.aggregate([
+      {
+        $match: {
+          isBlocked: false,
+          endDate: { $gte: currentDate },
+        },
+      },
+      {
+        $lookup: {
+          from: "vendors", // Name of the Vendor collection
+          localField: "vendorId",
+          foreignField: "_id",
+          as: "vendor",
+        },
+      },
+      {
+        $match: {
+          "vendor.isBlocked": false,
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
+    console.log("matching data:", matchingPackages);
+
     res.status(200).json(matchingPackages);
   } catch (error) {
-    res.status(408).send({ message: "Internal Server Error" });
+    res.status(500).send({ message: "Internal Server Error" });
   }
 };
-
-
 
 
 
@@ -534,74 +805,18 @@ export const fetchPackage = async (req, res) => {
 
 
 
-// export const editPackage = async (req, res) => {
-//   try {
-//     const { placeData, id } = req.body;
-//     const { place, type, district, description } = JSON.parse(placeData);
 
-//     if (!place || !type || !district || !description) {
-//       return res.status(400).json({ message: 'All fields are required' });
-//     }
-
-//     let image = {};
-//     if (req.file) {
-//       const { path, filename } = req.file;
-//       image = {
-//         public_id: filename,
-//         url: path,
-//       };
-//     }
-
-//     const updatedPlace = await Place.findByIdAndUpdate(id, {
-//       place,
-//       type,
-//       district,
-//       description,
-//       image,
-//     });
-
-//     if (!updatedPlace) {
-//       return res.status(404).json({ message: 'Tourist place not found' });
-//     }
-
-//     console.log('Tourist place updated successfully');
-//     return res.status(200).json({ message: 'Tourist place updated successfully' });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ message: 'Internal server error' });
-//   }
-// };
-
-
-
-
-// export const bookDetails = async (req, res) => {
-//   const vendorId = req.params.id;
-//   console.log(vendorId);
-
-//   try {
-//     const userOrders = await OrderModel.find({ vendorId: vendorId });
-//     if (userOrders.length > 0) {
-//       res.status(200).json(userOrders);
-//     } else {
-//       res.status(404).json({ message: "No orders found for the vendor" });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
 
 
 
 export const bookDetails = async (req, res) => {
   const vendorId = req.params.id;
-  console.log("vendorId", vendorId);
+  console.log("vendor")
+  console.log("vendor Id",vendorId);
 
   const { startDate, endDate } = req.query;
-  console.log('====================================');
   console.log(req.query);
-  console.log('====================================');
+
 
   const match = { vendorId: new mongoose.Types.ObjectId(vendorId) };
   if (startDate && endDate) {
@@ -653,6 +868,29 @@ export const bookDetails = async (req, res) => {
   }
 };
 
+// export const bookDetails = async (req, res) => {
+//   console.log("book detailsmmmmmmmmmmmm");
+
+//   const vendorId = req.params.id;
+//   console.log("vendor id",vendorId);
+
+//   try {
+    
+//     const userOrders = await OrderModel
+//       .find({ vendorId: vendorId })
+//       .sort({ createdAt: -1 }).populate("userId", "-password").populate("packageId", "-password")
+//     console.log(userOrders);
+//     if (userOrders.length === 0) {
+//       return res.status(404).json({ message: "No orders found for the user" });
+//     }
+// console.log("orders",userOrders);
+//     res.status(200).json(userOrders);
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
 
 
 
@@ -712,14 +950,6 @@ export const dashBoardGraph = async (req, res) => {
   const MONTHS_ARRAY = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const pipeLine = [
     
-  //   {
-
-  //   $match: {
-  //     // _id: new mongoose.Types.ObjectId(vendorId) } ,
-  //     createdAt: { $gte: YEAR_BEFORE, $lte: TODAY }
-  //   }
-  // },
-
   {
     $match: {
         createdAt: { $gte: YEAR_BEFORE, $lte: TODAY }
@@ -837,13 +1067,7 @@ export const dashBoardGraph = async (req, res) => {
   }]
   const vendorPipeLine = [
     
-  //   {
-
-  //   $match: {
-  //     // _id: new mongoose.Types.ObjectId(vendorId) } ,
-  //     createdAt: { $gte: YEAR_BEFORE, $lte: TODAY }
-  //   }
-  // },
+ 
 
   {
     $match: {
@@ -966,14 +1190,6 @@ export const dashBoardGraph = async (req, res) => {
   const packageChart = await Package.aggregate(vendorPipeLine)
   const orderChart = await OrderModel.aggregate(pipeLine)
 
-  console.log(userChart);
-  console.log('====================================');
-  console.log(packageChart);
-  console.log('====================================');
-  console.log(orderChart);
-
-
-
   res.json({
 
     userChart,
@@ -982,3 +1198,45 @@ export const dashBoardGraph = async (req, res) => {
   })
 
 }
+
+
+
+
+
+export const getVendorInfo = asyncHandler(async (req, res) => {
+
+  console.log("infoooooo")
+  const vendorId = req.params.vendorId;
+  console.log(vendorId);
+
+try {
+  const vendorInfo = await Vendor.findById(vendorId).select('-password');
+
+  console.log(vendorInfo);
+
+  res.status(200).json(vendorInfo);
+} catch (error) {
+  res.status(408).send({ message: "Internal Server Error" });
+}
+});
+
+
+export const vendorProfileImage = asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+ 
+  if (!req.file) {
+    return res.status(400).json({ message: 'No image file provided' });
+  }
+
+  const updatedUser = await Vendor.findByIdAndUpdate(
+    vendorId,
+    { image: req.file.path },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    return res.status(404).json({ message: 'Vendor not found' });
+  }
+
+  return res.status(200).json({ message: 'Profile image updated successfully', vendor: updatedVendor });
+});

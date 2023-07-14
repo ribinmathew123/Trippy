@@ -190,7 +190,9 @@ export const adminProtect = async (req, res, next) => {
 
 
 export const isAuthenticated = asyncHandler(async (req, res, next) => {
+  console.log("bookinghhhh");
   console.log(req.headers.authorization);
+  console.log("ffffffffffffff");
 
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
 
@@ -212,14 +214,15 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
       const user = await User.findById( decode.id)
        console.log(user);
       if (user) {
-          if (user.isBanned) {
-              res.json({
-                  status: false,
-                  message: "user  is banned"
+        console.log("user ok");
+          if (user.isBlocked) {
+            console.log("userblocked");
+              return res.status(400).json({
+                  status: true,
+                  message: "user  is Blocked"
               })
-            
           }
-          req.Userser = user
+          req.User = user
           next()
       } else {
           res.status(404).json({
@@ -241,9 +244,12 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
 
 
 export const vendorProtect = asyncHandler(async (req, res, next) => {
+  console.log("hhhhhhhhh");
+  console.log("head",req.headers.authorization );
+
 
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-
+console.log("head",req.headers.authorization );
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) {
       res.json({
@@ -260,22 +266,23 @@ export const vendorProtect = asyncHandler(async (req, res, next) => {
 
       const vendor = await Vendor.findById( decode.id)
        console.log("vendor data is coming ");
-       console.log(vendor);
       if (vendor) {
-          if (vendor.isBanned) {
-              res.json({
-                  status: false,
-                  message: "Vendor  is banned"
-              })
+          if (vendor.isBlocked) {
+            console.log("vendorblocked");
+
+            return res.status(403).json({
+              status: true,
+              message: "Vendor  is Blocked"
+          })
             
           }
           req.Vendor = vendor
           next()
       } else {
-          res.status(404).json({
-              status: false,
-              message: "Vendor not found"
-          })
+         return res.status(404).json({
+                  status: false,
+                  message: "vendor not found"
+              })
       }
   } else {
       res.json({

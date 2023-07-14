@@ -6,23 +6,18 @@ import packageModel from "../vendor/packageModel.js"
 
 const orderSchema = new mongoose.Schema({
 
-//     userId: {
-//     type: mongoose.SchemaTypes.ObjectId,
-//     ref: 'userModel',
-//   },
-
 vendorId: {
   type: mongoose.SchemaTypes.ObjectId,
-  ref: "VendorModel",
+  ref: "Vendor",
 },
 packageId: {
   type: mongoose.SchemaTypes.ObjectId,
-  ref: "packageModel",
+  ref: "Package",
 },
 
 userId: {
-  type: mongoose.SchemaTypes.ObjectId,
-  ref: "userModel",
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User',
 },
 orderId: {
       type:String, 

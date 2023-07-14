@@ -22,6 +22,10 @@ const placeSchema = new mongoose.Schema({
         type: String,
         // required: [true, "Please Add Description"]
     },
+    city: {
+        type: String,
+        // required: [true, "Please Add Description"]
+    },
     image:[ {
         
         public_id:{

@@ -17,18 +17,13 @@ connectDatabase();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
 app.use(cors({
   credentials: true,
   origin: ['http://localhost:5173', 'https://trippy.ribin.site']
 }));
 
-// app.use(
-  // cors({
-  //   credentials: true,
-  //   origin: ['http://localhost:5173',"*","https://api.ribin.site/"]
-  // })
-//   cors()
-// );
 
 app.options('*', cors());
 app.use("/admin", adminRoute);

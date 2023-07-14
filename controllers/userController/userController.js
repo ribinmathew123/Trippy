@@ -4,6 +4,9 @@ import Place from "../../models/admin/placeModel.js";
 import orderModel from "../../models/payment/paymentModel.js";
 import Review from "../../models/review/reviewModel.js";
 
+import Vendor from "../../models/vendor/VendorModel.js";
+
+import Packages from "../../models/vendor/packageModel.js";
 import asyncHandler from "express-async-handler";
 import moment from "moment";
 import bcrypt from "bcrypt";
@@ -28,6 +31,7 @@ const userLogin = asyncHandler(async (req, res) => {
             _id: user.id,
             name: user.name,
             email: user.email,
+            isVerified:user.isVerified,
             phoneNumber: user.phoneNumber,
             token: generateAuthToken(user._id),
           });
@@ -80,7 +84,7 @@ const userSignup = async (req, res) => {
       return res.status(500).json({ error: "Failed to send OTP" });
     }
 
-    return res.status(200).json(true);
+    return res.status(200).json({message:"otp sent success"});
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -107,6 +111,7 @@ const otpVerification = async (req, res) => {
         email,
         phoneNumber,
         password: hashedPassword,
+        isVerified:true
       });
       if (user) {
         res.status(201).json({
@@ -114,15 +119,40 @@ const otpVerification = async (req, res) => {
           name: user.name,
           email: user.email,
           phoneNumber: user.phoneNumber,
+          isVerified:user.isVerified,
           token: generateAuthToken(user._id),
         });
       }
     } else {
-      res.status(400);
-      throw new Error("Invalid OTP");
+      return res.status(400).json({ message: "Invalid OTP" });
+
+      // throw new Error("Invalid OTP");
     }
   } catch (error) {
     res.status(408).send({ message: "Internal Server Error" });
+  }
+};
+
+
+export const resendOtp=async (req, res) => {
+  console.log("resent otp hhhhhhhhhhhhhhhhhhhhhhhh");
+  try {
+    const { phoneNumber } = req.body;
+    console.log("number",phoneNumber);
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: "Please provide a phone number" });
+    }
+
+    const otpSend = await sendOtp(phoneNumber);
+    if (!otpSend) {
+      return res.status(500).json({ error: "Failed to send OTP" });
+    }
+
+    return res.status(200).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -165,54 +195,6 @@ export const forgotPasswordOtp = async (req, res) => {
 };
 
 
-
-
-
-
-
-
-
-
-
-// export const forgotPasswordOtp = async (req, res) => {
-//   try {
-//     console.log(req.body);
-//     const {  otpCode,newPassword,phoneNumber } = req.body;
-
-//     const otpVerify = await verifyOtp(phoneNumber, otpCode);
-//     if (otpVerify.status == "approved") {
-//       console.log("otp approvel ");
-
-//       const salt = await bcrypt.genSalt(10);
-//       const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-//       const user = await User.create({
-    
-//         password: hashedPassword,
-//       });
-//       if (user) {
-//         res.status(201).json({}
-//         );
-//       }
-//     } else {
-//       res.status(400);
-//       throw new Error("Invalid OTP");
-//     }
-//   } catch (error) {
-//     res.status(408).send({ message: "Internal Server Error" });
-//   }
-// };
-
-
-
-
-
-
-
-
-
-
-
 const generateAuthToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "10d" });
 };
@@ -250,19 +232,11 @@ console.log("userinfo",userExists);
   }
 };
 
-
-
-
-
-
-
-
-
 const searchPackage = async (req, res) => {
-  const { searchkey, price, startDate } = req.body;
-  console.log(req.body);
+  const { searchKey, price, startDate, page } = req.body;
+  const itemsPerPage = 8;
 
-  if (!searchkey || !price || !startDate) {
+  if (!searchKey || !price || !startDate) {
     return res.status(400).json({ error: "Please fill in all fields." });
   }
 
@@ -270,21 +244,36 @@ const searchPackage = async (req, res) => {
     const [minPrice, maxPrice] = price.split("-");
     const formattedStartDate = moment(startDate).format("YYYY-MM-DD");
 
-    const existsData = await Package.find({
+    const count = await Package.countDocuments({
       $or: [
-        { district: { $regex: searchkey, $options: "i" } },
-        { places: { $regex: searchkey, $options: "i" } },
+        { district: { $regex: searchKey, $options: "i" } },
+        { place: { $elemMatch: { place: { $regex: searchKey, $options: "i" } } } },
       ],
       price: { $gte: minPrice, $lte: maxPrice },
       startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
-    }).exec();
+    });
+
+    const totalPages = Math.ceil(count / itemsPerPage);
+    const skip = (page - 1) * itemsPerPage;
+
+    const existsData = await Package.find({
+      $or: [
+        { district: { $regex: searchKey, $options: "i" } },
+        { places: { $regex: searchKey, $options: "i" } },
+      ],
+      price: { $gte: minPrice, $lte: maxPrice },
+      startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
+    })
+      .skip(skip)
+      .limit(itemsPerPage)
+      .exec();
 
     if (existsData.length === 0) {
       console.log("no matching data");
       return res.status(404).json({ error: "No matching data found." });
     }
 
-    res.json(existsData);
+    res.json({ existsData, totalPages });
     console.log("existsData", existsData);
   } catch (err) {
     console.log("Error querying MongoDB:", err);
@@ -294,18 +283,50 @@ const searchPackage = async (req, res) => {
   }
 };
 
+
+
+
 export const offerPackage = async (req, res) => {
   try {
     const offer = req.params.offerPercentage;
+    const { search, sortBy, sortOrder, page, pageSize } = req.query;
+
+    const filter = {
+      isBlocked: false,
+      offer: parseInt(offer),
+    };
+
+    if (search) {
+      filter.name = { $regex: search, $options: "i" };
+    }
+
+    const sort = {};
+    if (sortBy) {
+      sort[sortBy] = sortOrder === "desc" ? -1 : 1;
+    } else {
+      sort.createdAt = -1;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(pageSize);
+    const limit = parseInt(pageSize);
+
+    const totalCount = await Package.countDocuments(filter);
+    const totalPages = Math.ceil(totalCount / limit);
 
     const currentDate = new Date();
 
     const packages = await Package.find({
-      offer: parseInt(offer),
+      ...filter,
       offerEndDate: { $gte: currentDate },
-    });
+    })
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
 
-    res.json(packages);
+    const savedPrice = packages[0].price * (parseInt(offer) / 100);
+    const offerPrice = packages[0].price - savedPrice;
+    const roundedOfferPrice = Math.round(offerPrice * 100) / 100;
+    res.json({ packages, savedPrice, roundedOfferPrice });
     console.log("packages", packages);
   } catch (err) {
     console.log("Error querying MongoDB:", err);
@@ -314,6 +335,11 @@ export const offerPackage = async (req, res) => {
       .json({ error: "An error occurred. Please try again later." });
   }
 };
+
+
+
+
+
 
 
 
@@ -357,13 +383,10 @@ const getTousistPackage = async (req, res) => {
 
 export const getPackage = asyncHandler(async (req, res) => {
   const packageId = req.params.packageId;
-  console.log("ggggggg");
-  console.log(packageId);
 
 try {
   const matchingPackages = await Package.find({ _id: packageId}).populate("vendorId")
 
-   console.log(matchingPackages);
   res.status(200).json(matchingPackages);
 } catch (error) {
   res.status(408).send({ message: "Internal Server Error" });
@@ -401,7 +424,6 @@ export const getActions = async (req, res) => {
   try {
     const { search, sortBy, sortOrder, page, pageSize } = req.query;
 
-    // Create filter object
     const filter = {
       isBlocked: false,
     };
@@ -433,16 +455,17 @@ export const getActions = async (req, res) => {
   }
 };
 
+
+
 export const orderDetails = async (req, res) => {
-  console.log("orderssssssssssssss");
 
   const userId = req.params.userId;
-  console.log(userId);
 
   try {
+    
     const orders = await orderModel
       .find({ userId: userId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 }).populate("vendorId", "-password").populate("packageId", "-password")
     console.log(orders);
     if (orders.length === 0) {
       return res.status(404).json({ message: "No orders found for the user" });
@@ -465,7 +488,7 @@ export const orderSuccess = async (req, res) => {
   try {
     const orders = await orderModel
       .find({ _id: orderId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
     console.log(orders);
     if (orders.length === 0) {
       return res.status(404).json({ message: "No orders found for the user" });
@@ -498,7 +521,6 @@ export const aboutPlace = async (req, res) => {
 
 
 export const searchRelatedPack = async (req, res) => {
-  console.log("111111111111111");
   const placeId = req.params.placeId;
   console.log(placeId);
 
@@ -519,27 +541,14 @@ export const searchRelatedPack = async (req, res) => {
 };
 
 
-// reviews
 
-// export const postUserReviews = async (req, res) => {
-//   console.log("review data coming.......");
-//   try {
-//     const { userId, packageId, rating, description } = req.body;
-//     console.log('====================================');
-//     console.log(req.body);
-//     console.log('====================================');
-//     const review = new Review({ userId, packageId, rating, description });
-//     await review.save();
-//     res.status(201).json(review);
-//   } catch (error) {
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// };
+
+
+
 export const postUserReviews = async (req, res) => {
   try {
     const { userId, packageId, rating, description } = req.body;
     
-    // Check if the user has already submitted a review for the package
     const existingReview = await Review.findOne({ userId, packageId });
     if (existingReview) {
       return res.status(400).json({ error: 'You have already submitted a review for this package.' });
@@ -557,12 +566,17 @@ export const postUserReviews = async (req, res) => {
 
 // Get reviews for a specific package
 export const getPackageReviews = async (req, res) => {
-  console.log("gggggg");
   try {
     const { packageId } = req.params;
-    console.log(packageId);
+    console.log("package id is coming",packageId);
 
     const reviews = await Review.find({ packageId }).populate('userId');
+console.log("find review");
+console.log(reviews);
+
+console.log("find review");
+
+
 
     res.json(reviews);
   } catch (error) {
@@ -603,6 +617,83 @@ export const UpdateUserReviews= async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
+
+
+
+export const getUserInfo = asyncHandler(async (req, res) => {
+
+  const userId = req.params.userId;
+  console.log(userId);
+
+try {
+  const userInfo = await User.findById(userId).select('-password');
+
+  console.log(userInfo);
+
+  res.status(200).json(userInfo);
+} catch (error) {
+  res.status(408).send({ message: "Internal Server Error" });
+}
+});
+
+
+
+export const userProfileImage = asyncHandler(async (req, res, next) => {
+  const { userId } = req.params;
+ 
+  if (!req.file) {
+    return res.status(400).json({ message: 'No image file provided' });
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { image: req.file.path },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  return res.status(200).json({ message: 'Profile image updated successfully', user: updatedUser });
+});
+
+
+
+
+
+export const changePassword = async (req, res) => {
+  const saltRounds = 10;
+  const { userId } = req.params;
+  const { password, confirmPassword } = req.body;
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: 'Passwords do not match' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Failed to update password' });
+  }
+};
+
+
+
+
 
 
 

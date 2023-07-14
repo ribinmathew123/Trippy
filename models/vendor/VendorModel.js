@@ -25,6 +25,14 @@ const vendorSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
+  isVerified:{
+    type:Boolean,
+    required:true,
+    default:false
+},
+image: {
+  type:String, 
+},
 }, { timestamps: true });
 
 const Vendor = mongoose.model("Vendor", vendorSchema);

@@ -141,6 +141,9 @@ const blockAndUnblockUser = asyncHandler(async (req, res) => {
 
 
 
+
+
+
 const getPlace = async (req, res) => {
   try {
     const Allplace = await Place.find({ isBlocked: false }).sort({ createdAt: -1 });
@@ -172,6 +175,7 @@ const addPlace = async (req, res, next) => {
       type,
       disname,
       details,
+      city,
     } = req.body;
     const { path, filename } = req.file;
 
@@ -188,6 +192,7 @@ const addPlace = async (req, res, next) => {
 
       district:disname,
       description: details,
+      city:city,
     });
 
     if (Toustplace) {
@@ -286,9 +291,11 @@ export const editPlace = async (req, res) => {
       type: type || existingPlace.type,
       district: district || existingPlace.district,
       description: description || existingPlace.description,
+      city: district || existingPlace.city,
       image: req.file ? image : existingPlace.image,
     };
 
+    
     await Place.findByIdAndUpdate(id, updatedPlace);
 
     console.log('Tourist place updated successfully');
