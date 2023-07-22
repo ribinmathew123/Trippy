@@ -1,10 +1,9 @@
 import express from "express";
 import uploadImage from "../../config/cloudinary.js";
-
 import {
   otpVerification,
-  userSignup,
-  userLogin,
+  userSignup,signupWithGmail,
+  userLogin,googleLogin,loginWithGoogle,
   forgotPassword,
   resendOtp,
   forgotPasswordOtp,
@@ -26,6 +25,8 @@ import {
   orderDetails,
   searchRelatedPack,
 } from "../../controllers/userController/userController.js";
+
+
 import {
   payment,
   confirmOrder,
@@ -57,13 +58,21 @@ userRoute.get("/successData/:orderId", orderSuccess);
 userRoute.get("/placeDetails/about/:placeId", aboutPlace);
 userRoute.get("/placeDetails/relatePackage/:placeId", searchRelatedPack);
 
+
 userRoute.get("/reviews/:packageId", getPackageReviews);
 userRoute.post("/reviews", isAuthenticated, postUserReviews);
 userRoute.delete("/reviews/:id", isAuthenticated, deleteUserReviews);
 userRoute.put("/reviews/:id", isAuthenticated, UpdateUserReviews);
 userRoute.get("/users/:userId", isAuthenticated, getUserInfo);
 userRoute.post("/password/:userId", isAuthenticated, changePassword);
+userRoute.post("/signup-with-google" ,signupWithGmail);
+userRoute.get("/google-login" ,loginWithGoogle);
+
+
+
 
 userRoute.post("/users/:userId",isAuthenticated,uploadImage,userProfileImage);
+userRoute.post('/google-login',googleLogin)
+
 
 export default userRoute;

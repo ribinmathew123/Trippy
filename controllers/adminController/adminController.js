@@ -220,7 +220,6 @@ const addPlace = async (req, res, next) => {
 
 
 export const deletePlace = asyncHandler(async (req, res) => {
-  console.log("delete working ");
   console.log(req.query.id);
 
   if (!req.query.id) {

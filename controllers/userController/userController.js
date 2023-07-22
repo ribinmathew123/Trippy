@@ -3,6 +3,8 @@ import Package from "../../models/vendor/packageModel.js";
 import Place from "../../models/admin/placeModel.js";
 import orderModel from "../../models/payment/paymentModel.js";
 import Review from "../../models/review/reviewModel.js";
+import { OAuth2Client } from "google-auth-library";
+
 
 import Vendor from "../../models/vendor/VendorModel.js";
 
@@ -13,6 +15,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { sendOtp, verifyOtp } from "../../helpers/otpVerification.js";
 import dotenv from "dotenv";
+import axios from "axios";
 dotenv.config();
 
 const userLogin = asyncHandler(async (req, res) => {
@@ -32,6 +35,7 @@ const userLogin = asyncHandler(async (req, res) => {
             name: user.name,
             email: user.email,
             isVerified:user.isVerified,
+            image:user.image,
             phoneNumber: user.phoneNumber,
             token: generateAuthToken(user._id),
           });
@@ -254,7 +258,6 @@ const searchPackage = async (req, res) => {
     const count = await Package.countDocuments({
       $or: [
         { district: { $regex: searchKey, $options: "i" } },
-        { place: { $elemMatch: { place: { $regex: searchKey, $options: "i" } } } },
       ],
       price: { $gte: minPrice, $lte: maxPrice },
       startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
@@ -266,7 +269,7 @@ const searchPackage = async (req, res) => {
     const existsData = await Package.find({
       $or: [
         { district: { $regex: searchKey, $options: "i" } },
-        { places: { $regex: searchKey, $options: "i" } },
+
       ],
       price: { $gte: minPrice, $lte: maxPrice },
       startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
@@ -645,12 +648,17 @@ try {
 
 
 
-export const userProfileImage = asyncHandler(async (req, res, next) => {
+export const userProfileImage = asyncHandler(async (req, res) => {
   const { userId } = req.params;
+  console.log("gggggggggggggggggggg");
  
   if (!req.file) {
-    return res.status(400).json({ message: 'No image file provided' });
+    console.log("this is workinggggggggggggg no file");
+
+    return res.status(400).json({ error: 'No image file provided' });
   }
+  console.log("tttttttttttttttttttttt");
+
 
   const updatedUser = await User.findByIdAndUpdate(
     userId,
@@ -700,10 +708,149 @@ export const changePassword = async (req, res) => {
 
 
 
+// googleLogin
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+export const googleLogin = (req, res) => {
+ 
+  const { idToken } = req.body;
+
+  client
+    .verifyIdToken({ idToken, audience: process.env.GOOGLE_CLIENT_ID })
+    .then((response) => {
+      const { email_verified, name, email } = response.payload;
+
+      if (email_verified) {
+        User.findOne({ email }).exec((err, user) => {
+          if (user) {
+            const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+              expiresIn: "10d"
+            });
+            const { _id, email, name } = user;
+            return res.json({
+              token,
+              user: { _id, email, name }
+            });
+          } else {
+            const password = email + process.env.JWT_SECRET;
+
+            user = new User({ name, email, password });
+            user
+              .save((err, data) => {
+                if (err) {
+                  return res.status(400).json({
+                    error: "User signup failed with google"
+                  });
+                }
+                const token = jwt.sign(
+                  { _id: data._id },
+                  process.env.JWT_SECRET,
+                  { expiresIn: "10d" }
+                );
+                const { _id, email, name } = data;
+
+                return res.json({
+                  token,
+                  user: { _id, email, name }
+                });
+              })
+              .catch((err) => {
+                return res.status(401).json({
+                  message: "signup error"
+                });
+              });
+          }
+        });
+      } else {
+        return res.status(400).json({
+          error: "Google login failed. Try again"
+        });
+      }
+    });
+};
 
 
 
 
+
+
+
+
+
+
+
+export const signupWithGmail = asyncHandler(async (req, res) => {
+  console.log("signupdata");
+  const googleTOken = req.body.googleToken
+  if (!googleTOken) {
+      res.status(400).json({
+          status: false,
+          message: "missing google token"
+      })
+  }
+  const payload = await (await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${googleTOken}`)).data
+  if (payload) {
+      const existedUser  = await User.findOne({ email: payload.email })
+      if (!existedUser) {
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(payload.sub, salt);
+          const user = new User({
+              name: payload.name,
+              email: payload.email,
+              isSignupWithGoogle: true,
+              password: hashedPassword,
+              isVerified: payload.email_verified
+          })
+          user.save()
+          const token = await generateAuthToken(user._id)
+          res.json({
+              status: true,
+              data: {...user._doc, token}
+          })
+      } else {
+          res.status(406).json({ status: false, message: "already signup with email please login" })
+      }
+  }
+
+})
+
+
+
+
+
+
+
+export const loginWithGoogle = asyncHandler(async (req, res) => {
+
+  const googleTOken = req.query.googleToken;
+  console.log(googleTOken);
+
+  if (!googleTOken) {
+      res.status(400).json({
+          status: false,
+          message: "missing google token"
+      })
+  }
+  const payload = await (await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${googleTOken}`)).data
+  if (payload) {
+      const existedUser = await User.findOne({ email: payload.email })
+      if (existedUser) {
+          const passwordStatus = await bcrypt.compare(payload.sub,existedUser.password);
+
+          if (passwordStatus) {
+              const token = await generateAuthToken( existedUser._id,)
+              res.json({
+                  status: true,
+                  user: {...existedUser._doc, token}
+              })
+          }
+      } else {
+          res.status(404).json({ status: false, message: "user not exist" })
+      }
+  }
+
+}
+)
 
 
 

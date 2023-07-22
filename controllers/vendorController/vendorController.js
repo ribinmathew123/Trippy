@@ -248,7 +248,6 @@ export const otpVerification = async (req, res) => {
 
 
 export const resendOtp=async (req, res) => {
-  console.log("resent otp hhhhhhhhhhhhhhhhhhhhhhhh");
   try {
     const { phoneNumber } = req.body;
     console.log("number",phoneNumber);
@@ -275,16 +274,15 @@ export const resendOtp=async (req, res) => {
 
 export const forgotPasswordOtp = async (req, res) => {
   try {
-    console.log(req.body);
+   
     const { otpCode, newPassword, phoneNumber } = req.body;
 
-    // Find the user based on the provided mobile number
     const vendor = await Vendor.findOne({ phoneNumber });
-
     if (!vendor) {
       res.status(404).json({ message: "User not found" });
       return;
     }
+
 
     const otpVerify = await verifyOtp(phoneNumber, otpCode);
 
@@ -297,8 +295,11 @@ export const forgotPasswordOtp = async (req, res) => {
       vendor.password = hashedPassword;
       await vendor.save();
 
+      console.log("Password updated successfully");
       res.status(200).json({ message: "Password updated successfully" });
     } else {
+      console.log("Invalid OTP");
+
       res.status(400).json({ message: "Invalid OTP" });
     }
   } catch (error) {
@@ -315,6 +316,7 @@ const generateAuthToken = (id) => {
 
 
 export const forgotPassword = async (req, res) => {
+
   try {
     const {  phoneNumber} = req.body;
     console.log("data",phoneNumber);
@@ -459,6 +461,43 @@ export const addPackage = async (req, res, next) => {
 // };
 
 
+// export const TousistPackage = async (req, res) => {
+//   try {
+//     const currentDate = new Date();
+
+//     const matchingPackages = await Package.aggregate([
+//       {
+//         $match: {
+//           isBlocked: false,
+//           endDate: { $gte: currentDate },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "vendors", // Name of the Vendor collection
+//           localField: "vendorId",
+//           foreignField: "_id",
+//           as: "vendor",
+//         },
+//       },
+//       {
+//         $match: {
+//           "vendor.isBlocked": false,
+//         },
+//       },
+//       {
+//         $sort: { createdAt: -1 },
+//       },
+//     ]);
+
+//     console.log("matching package data:", matchingPackages);
+
+//     res.status(200).json(matchingPackages);
+//   } catch (error) {
+//     res.status(500).send({ message: "Internal Server Error" });
+//   }
+// };
+
 export const TousistPackage = async (req, res) => {
   try {
     const currentDate = new Date();
@@ -486,9 +525,24 @@ export const TousistPackage = async (req, res) => {
       {
         $sort: { createdAt: -1 },
       },
+      {
+        $lookup: {
+          from: "reviews", // Name of the Review collection
+          localField: "_id",
+          foreignField: "packageId",
+          as: "reviews",
+        },
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$reviews.rating" },
+          totalReviews: { $size: "$reviews" }, 
+
+        }
+      },
     ]);
 
-    console.log("matching data:", matchingPackages);
+    console.log("matching package data:", matchingPackages);
 
     res.status(200).json(matchingPackages);
   } catch (error) {

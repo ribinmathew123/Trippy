@@ -14,7 +14,7 @@ vendorRoute.post("/signup", vendorSignup);
 vendorRoute.post("/login", vendorLogin);
 vendorRoute.post("/otp", otpVerification);
 vendorRoute.post('/resend-otp', resendOtp);
-vendorRoute.post('/forgotPassword', forgotPassword);
+vendorRoute.post('/forgot-password', forgotPassword);
 vendorRoute.post('/verifyOtp', forgotPasswordOtp);
 
 
