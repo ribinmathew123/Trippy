@@ -511,7 +511,7 @@ export const TousistPackage = async (req, res) => {
       },
       {
         $lookup: {
-          from: "vendors", // Name of the Vendor collection
+          from: "vendors", 
           localField: "vendorId",
           foreignField: "_id",
           as: "vendor",

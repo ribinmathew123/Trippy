@@ -190,14 +190,11 @@ export const adminProtect = async (req, res, next) => {
 
 
 export const isAuthenticated = asyncHandler(async (req, res, next) => {
-  console.log("bookinghhhh");
-  console.log(req.headers.authorization);
-  console.log("ffffffffffffff");
+
 
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
 
   const token = req.headers.authorization?.split(' ')[1]
-  console.log("my code is",token);
   if (!token) { 
       res.json({
           status: false,
@@ -209,12 +206,9 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
   const currentTime = new Date()
   if (decode.exp && decode.exp > (currentTime.getTime() / 1000)) {
   
-      console.log("id is",decode.id);
 
       const user = await User.findById( decode.id)
-       console.log(user);
       if (user) {
-        console.log("user ok");
           if (user.isBlocked) {
             console.log("userblocked");
               return res.status(400).json({
@@ -244,12 +238,9 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
 
 
 export const vendorProtect = asyncHandler(async (req, res, next) => {
-  console.log("hhhhhhhhh");
-  console.log("head",req.headers.authorization );
 
 
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-console.log("head",req.headers.authorization );
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) {
       res.json({
@@ -262,10 +253,8 @@ console.log("head",req.headers.authorization );
   const currentTime = new Date()
   if (decode.exp && decode.exp > (currentTime.getTime() / 1000)) {
     
-      console.log("id is",decode.id);
 
       const vendor = await Vendor.findById( decode.id)
-       console.log("vendor data is coming ");
       if (vendor) {
           if (vendor.isBlocked) {
             console.log("vendorblocked");

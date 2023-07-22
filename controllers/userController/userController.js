@@ -66,7 +66,7 @@ const userSignup = async (req, res) => {
     if (!name || !email || !phoneNumber || !password) {
       return res
         .status(400)
-        .json({ error: "Please provide all required fields" });
+        .json({ message: "Please provide all required fields" });
     }
 
     const userExistsByEmail = await User.findOne({ email });
@@ -633,12 +633,10 @@ export const UpdateUserReviews= async (req, res) => {
 export const getUserInfo = asyncHandler(async (req, res) => {
 
   const userId = req.params.userId;
-  console.log(userId);
 
 try {
   const userInfo = await User.findById(userId).select('-password');
 
-  console.log(userInfo);
 
   res.status(200).json(userInfo);
 } catch (error) {
@@ -650,14 +648,11 @@ try {
 
 export const userProfileImage = asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  console.log("gggggggggggggggggggg");
  
   if (!req.file) {
-    console.log("this is workinggggggggggggg no file");
 
     return res.status(400).json({ error: 'No image file provided' });
   }
-  console.log("tttttttttttttttttttttt");
 
 
   const updatedUser = await User.findByIdAndUpdate(
@@ -780,7 +775,8 @@ export const googleLogin = (req, res) => {
 
 export const signupWithGmail = asyncHandler(async (req, res) => {
   console.log("signupdata");
-  const googleTOken = req.body.googleToken
+  const googleTOken = req.body.googleToken;
+  console.log(googleTOken);
   if (!googleTOken) {
       res.status(400).json({
           status: false,
@@ -788,12 +784,15 @@ export const signupWithGmail = asyncHandler(async (req, res) => {
       })
   }
   const payload = await (await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${googleTOken}`)).data
+  console.log("payload",payload);
   if (payload) {
       const existedUser  = await User.findOne({ email: payload.email })
       if (!existedUser) {
-
+console.log("new user");
         const salt = await bcrypt.genSalt(10);
+        console.log("salt",salt);
         const hashedPassword = await bcrypt.hash(payload.sub, salt);
+        console.log("password",hashedPassword);
           const user = new User({
               name: payload.name,
               email: payload.email,
@@ -801,13 +800,16 @@ export const signupWithGmail = asyncHandler(async (req, res) => {
               password: hashedPassword,
               isVerified: payload.email_verified
           })
+          console.log("save ");
           user.save()
           const token = await generateAuthToken(user._id)
           res.json({
-              status: true,
-              data: {...user._doc, token}
+              status: true,  message: "Login Success",
+
+              user: {...user._doc, token}
           })
       } else {
+        console.log("already signup with email please login");
           res.status(406).json({ status: false, message: "already signup with email please login" })
       }
   }

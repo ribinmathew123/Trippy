@@ -65,6 +65,7 @@ userRoute.delete("/reviews/:id", isAuthenticated, deleteUserReviews);
 userRoute.put("/reviews/:id", isAuthenticated, UpdateUserReviews);
 userRoute.get("/users/:userId", isAuthenticated, getUserInfo);
 userRoute.post("/password/:userId", isAuthenticated, changePassword);
+
 userRoute.post("/signup-with-google" ,signupWithGmail);
 userRoute.get("/google-login" ,loginWithGoogle);
 
