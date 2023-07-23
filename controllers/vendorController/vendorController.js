@@ -579,7 +579,7 @@ export const deletePackage = asyncHandler(async (req, res) => {
     throw new Error("Package not found");
   }
 
-  
+
   const deletePackage = await Package.deleteOne({ _id: req.query.id });
 
   if (deletePackage) {
@@ -627,15 +627,7 @@ export const editPackage = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // let image = {};
-    // if (req.file) {
-    //   const { path, filename } = req.file;
-    //   image = {
-    //     public_id: filename,
-    //     url: path,
-    //   };
-    // }
-
+   
     const updatedPackage = await Package.findByIdAndUpdate(id, {
       name,
       price,
