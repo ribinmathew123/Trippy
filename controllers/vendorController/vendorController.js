@@ -579,6 +579,7 @@ export const deletePackage = asyncHandler(async (req, res) => {
     throw new Error("Package not found");
   }
 
+  
   const deletePackage = await Package.deleteOne({ _id: req.query.id });
 
   if (deletePackage) {
