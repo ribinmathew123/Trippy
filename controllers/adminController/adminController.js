@@ -175,7 +175,8 @@ const addPlace = async (req, res, next) => {
       type,
       disname,
       details,
-      city,
+      city,email,
+      phoneNumber
     } = req.body;
     const { path, filename } = req.file;
 
@@ -193,6 +194,8 @@ const addPlace = async (req, res, next) => {
       district:disname,
       description: details,
       city:city,
+      email:email,
+      phoneNumber:phoneNumber
     });
 
     if (Toustplace) {

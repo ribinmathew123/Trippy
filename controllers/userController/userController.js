@@ -209,6 +209,7 @@ const generateAuthToken = (id) => {
 
 
 export const forgotPassword = async (req, res) => {
+
   try {
     const {  phoneNumber} = req.body;
     console.log("data",phoneNumber);
@@ -245,23 +246,29 @@ console.log("userinfo",userExists);
 
 const searchPackage = async (req, res) => {
   const { searchKey, price, startDate, page } = req.body;
-  const itemsPerPage = 8;
 
+  console.log("datas",req.body);
+  const itemsPerPage = 8;
+  
   if (!searchKey || !price || !startDate) {
     return res.status(400).json({ error: "Please fill in all fields." });
   }
+  const startDateTime = new Date(`${startDate}T00:00:00.000Z`);
 
   try {
     const [minPrice, maxPrice] = price.split("-");
-    const formattedStartDate = moment(startDate).format("YYYY-MM-DD");
-
+   
+    console.log("minPrice:", minPrice);
+    console.log("maxPrice:", maxPrice);
     const count = await Package.countDocuments({
       $or: [
         { district: { $regex: searchKey, $options: "i" } },
       ],
       price: { $gte: minPrice, $lte: maxPrice },
-      startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
+      startDate: { $gte: startDateTime },
+
     });
+
 
     const totalPages = Math.ceil(count / itemsPerPage);
     const skip = (page - 1) * itemsPerPage;
@@ -269,10 +276,11 @@ const searchPackage = async (req, res) => {
     const existsData = await Package.find({
       $or: [
         { district: { $regex: searchKey, $options: "i" } },
-
+        { "place.place": { $regex: searchKey, $options: "i" } },
       ],
       price: { $gte: minPrice, $lte: maxPrice },
-      startDate: { $lte: new Date(formattedStartDate + "T23:59:59Z") },
+      startDate: { $gte: startDateTime },
+
     })
       .skip(skip)
       .limit(itemsPerPage)
@@ -284,14 +292,21 @@ const searchPackage = async (req, res) => {
     }
 
     res.json({ existsData, totalPages });
-    console.log("existsData", existsData);
   } catch (err) {
-    console.log("Error querying MongoDB:", err);
     return res
       .status(500)
       .json({ error: "An error occurred. Please try again later." });
   }
 };
+
+
+
+
+
+
+
+
+
 
 
 

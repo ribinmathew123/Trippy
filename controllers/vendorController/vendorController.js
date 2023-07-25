@@ -373,6 +373,12 @@ export const addPackage = async (req, res, next) => {
       place,
       plan,
     } = req.body;
+
+    console.log("start");
+    console.log(req.body);
+    console.log("end");
+
+
     console.log(category);
     const [categoryId, categoryName] = category.split(",");
 

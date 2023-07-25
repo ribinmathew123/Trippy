@@ -26,6 +26,12 @@ const placeSchema = new mongoose.Schema({
         type: String,
         // required: [true, "Please Add Description"]
     },
+    email:{
+        type: String,
+   },
+   phoneNumber:{
+        type: String,
+   },
     image:[ {
         
         public_id:{
