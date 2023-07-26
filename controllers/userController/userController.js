@@ -247,7 +247,6 @@ console.log("userinfo",userExists);
 const searchPackage = async (req, res) => {
   const { searchKey, price, startDate, page } = req.body;
 
-  console.log("datas",req.body);
   const itemsPerPage = 8;
   
   if (!searchKey || !price || !startDate) {
