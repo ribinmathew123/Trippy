@@ -141,9 +141,6 @@ const blockAndUnblockUser = asyncHandler(async (req, res) => {
 
 
 
-
-
-
 const getPlace = async (req, res) => {
   try {
     const Allplace = await Place.find({ isBlocked: false }).sort({ createdAt: -1 });

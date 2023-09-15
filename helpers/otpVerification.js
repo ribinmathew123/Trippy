@@ -11,7 +11,6 @@ const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, { lazyloading: true
 
 
 const sendOtp = (phoneNumber) => {
-  console.log("otp dta");
   return new Promise((resolve, reject) => {
 
     client.verify.v2

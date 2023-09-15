@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
 import connectDatabase from './config/database.js';
 import userRoute from './routes/userRoutes/userRouter.js';
 import adminRoute from './routes/adminRoutes/adminRouter.js'

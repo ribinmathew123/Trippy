@@ -114,6 +114,8 @@ import Vendor from "../models/vendor/VendorModel.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+
+
 export const protect = asyncHandler(async (req, res, next ) => {
   let token
 
@@ -121,7 +123,7 @@ export const protect = asyncHandler(async (req, res, next ) => {
     try {
       //  Get Token from header
       token = req.headers.authorization.split(' ')[1]
-      console.log("chek token",token);
+      console.log("check token",token);
       
       // Verify Token
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
@@ -239,7 +241,6 @@ export const isAuthenticated = asyncHandler(async (req, res, next) => {
 
 export const vendorProtect = asyncHandler(async (req, res, next) => {
 
-
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
   const token = req.headers.authorization?.split(' ')[1]
   if (!token) {
@@ -253,7 +254,6 @@ export const vendorProtect = asyncHandler(async (req, res, next) => {
   const currentTime = new Date()
   if (decode.exp && decode.exp > (currentTime.getTime() / 1000)) {
     
-
       const vendor = await Vendor.findById( decode.id)
       if (vendor) {
           if (vendor.isBlocked) {

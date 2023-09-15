@@ -61,13 +61,15 @@ const userLogin = asyncHandler(async (req, res) => {
 const userSignup = async (req, res) => {
   try {
     const { name, email, phoneNumber, password } = req.body;
-    console.log("data", name, email, phoneNumber, password);
 
     if (!name || !email || !phoneNumber || !password) {
       return res
         .status(400)
         .json({ message: "Please provide all required fields" });
     }
+
+
+
 
     const userExistsByEmail = await User.findOne({ email });
     const userExistsByPhoneNumber = await User.findOne({ phoneNumber });
@@ -83,6 +85,8 @@ const userSignup = async (req, res) => {
 
     }
 
+    
+
     const otpSend = await sendOtp(phoneNumber);
     if (!otpSend) {
       return res.status(500).json({ error: "Failed to send OTP" });
@@ -94,6 +98,12 @@ const userSignup = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+
+
+
+
 
 
 

@@ -35,9 +35,10 @@ import { isAuthenticated } from "../../Middleware/middleware.js";
 
 const userRoute = express.Router();
 
-userRoute.post("/signup", userSignup);
+userRoute.post("/signup", userSignup)
+
 userRoute.post("/login", userLogin);
-userRoute.post("/otp", otpVerification);
+userRoute.post("/otp", otpVerification)
 userRoute.post("/resend-otp", resendOtp);
 
 userRoute.post("/forgotPassword", forgotPassword);
